@@ -1,0 +1,177 @@
+.panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.currentUser {
+  border: 2px solid #1976d2;
+  background: #f8f9ff;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.netWorth {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #28a745;
+}
+
+.money {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.portfolio {
+  margin-bottom: 1rem;
+}
+
+.portfolio h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.stocks {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.stockItem {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  padding: 0.2rem 0;
+}
+
+.stockName {
+  color: #333;
+  font-weight: 500;
+}
+
+.stockDetails {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.stockQuantity {
+  color: #666;
+}
+
+.stockValue {
+  color: #28a745;
+  font-weight: 600;
+  font-size: 0.7rem;
+}
+
+.tradeSection h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.tradeControls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.select {
+  padding: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actionBtn {
+  flex: 1;
+  padding: 0.4rem;
+  font-size: 0.8rem;
+  background: #f8f9fa;
+  color: #666;
+  border: 1px solid #dee2e6;
+}
+
+.actionBtn.active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #1976d2;
+}
+
+.quantityInput {
+  padding: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.tradeBtn {
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #28a745;
+  color: #fff;
+}
+
+.tradeBtn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.tradeInfo {
+  background: #f8f9fa;
+  padding: 0.5rem;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: 600;
+  color: #333;
+}
+
+@media (max-width: 768px) {
+  .stocks {
+    grid-template-columns: 1fr;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .status {
+    align-items: flex-start;
+  }
+} 

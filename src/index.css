@@ -1,0 +1,50 @@
+/* CSS Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  background: #f6f8fa;
+  color: #222;
+  min-height: 100vh;
+}
+
+a {
+  color: #1976d2;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5em 1.2em;
+  background: #1976d2;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+button:hover {
+  background: #125ea2;
+}
+
+input, select {
+  font-family: inherit;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.5em;
+  font-size: 1em;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
