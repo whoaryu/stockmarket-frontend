@@ -8,6 +8,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/game/:roomCode" element={<GameDashboard />} />
         <Route path="/game" element={<GameDashboard />} />
       </Routes>
     </Router>

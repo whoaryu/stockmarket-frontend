@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { io, Socket } from 'socket.io-client';
 import styles from './GameDashboard.module.css';
 import StockPriceBoard from '../components/StockPriceBoard';
 import PlayerPanel from '../components/PlayerPanel';
 import BankerPanel from '../components/BankerPanel';
+import Leaderboard from '../components/Leaderboard';
+import Notifications from '../components/Notifications';
 
 interface Stock {
   name: string;
@@ -11,7 +15,7 @@ interface Stock {
 }
 
 interface Player {
-  id: number;
+  id: string;
   name: string;
   money: number;
   netWorth: number;
@@ -19,137 +23,183 @@ interface Player {
   role: 'player' | 'banker';
 }
 
+interface Room {
+  roomCode: string;
+  hostId: string;
+  stocks: Stock[];
+  players: Player[];
+}
+
 const GameDashboard: React.FC = () => {
+  const { roomCode } = useParams<{ roomCode: string }>();
+  const navigate = useNavigate();
+  const [room, setRoom] = useState<Room | null>(null);
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [stocks, setStocks] = useState<Stock[]>([
-    { name: 'WOCKHARDT', price: 20, shares: 200000 },
-    { name: 'HDFC', price: 25, shares: 200000 },
-    { name: 'TISCO', price: 40, shares: 200000 },
-    { name: 'ONGC', price: 55, shares: 200000 },
-    { name: 'RELIANCE', price: 75, shares: 200000 },
-    { name: 'INFOSYS', price: 80, shares: 200000 },
-  ]);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [error, setError] = useState('');
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    playerName: string;
+    action: 'buy' | 'sell' | 'rights';
+    stockName: string;
+    quantity: number;
+    price: number;
+    timestamp: Date;
+  }>>([]);
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Get user info from localStorage
     const userInfo = localStorage.getItem('userInfo');
-    if (userInfo) {
-      const { name, role, roomCode } = JSON.parse(userInfo);
-      const newUser: Player = {
-        id: Date.now(),
-        name,
-        money: 1000000, // 10 lakh starting money
-        netWorth: 1000000,
-        stocks: {},
-        role
-      };
-      setCurrentUser(newUser);
-      
-      // Add current user to players list
-      setPlayers([newUser]);
+    if (!userInfo || !roomCode) {
+      navigate('/');
+      return;
     }
-  }, []);
 
-  const handleTrade = (playerId: number, stockName: string, action: 'buy' | 'sell', quantity: number) => {
-    const stock = stocks.find(s => s.name === stockName);
-    if (!stock) return;
-
-    const totalCost = stock.price * quantity;
+    const { playerId } = JSON.parse(userInfo);
     
-    setPlayers(prevPlayers => 
-      prevPlayers.map(player => {
-        if (player.id !== playerId) return player;
-        
-        let newMoney = player.money;
-        let newStocks = { ...player.stocks };
-        
-        if (action === 'buy') {
-          if (newMoney < totalCost) {
-            alert('Insufficient funds!');
-            return player;
-          }
-          newMoney -= totalCost;
-          newStocks[stockName] = (newStocks[stockName] || 0) + quantity;
-        } else { // sell
-          const currentShares = newStocks[stockName] || 0;
-          if (currentShares < quantity) {
-            alert(`You only have ${currentShares} shares of ${stockName}. Cannot sell ${quantity} shares.`);
-            return player;
-          }
-          newMoney += totalCost;
-          newStocks[stockName] = currentShares - quantity;
-        }
-        
-        // Calculate new net worth
-        const stockValue = Object.entries(newStocks).reduce((total, [stockName, shares]) => {
-          const stock = stocks.find(s => s.name === stockName);
-          return total + (stock ? stock.price * shares : 0);
-        }, 0);
-        
-        return {
-          ...player,
-          money: newMoney,
-          stocks: newStocks,
-          netWorth: newMoney + stockValue
-        };
-      })
-    );
+    // Initialize Socket.io connection
+    const newSocket = io('http://localhost:3000');
+    socketRef.current = newSocket;
+    setSocket(newSocket);
 
-    // Update stock shares available
-    setStocks(prevStocks => 
-      prevStocks.map(s => 
-        s.name === stockName 
-          ? { ...s, shares: action === 'buy' ? s.shares - quantity : s.shares + quantity }
-          : s
-      )
-    );
+    // Join room
+    newSocket.emit('join-room', { roomCode, playerId });
+
+    // Listen for room updates
+    newSocket.on('room-updated', (updatedRoom: Room) => {
+      setRoom(updatedRoom);
+      const player = updatedRoom.players.find(p => p.id === playerId);
+      if (player) {
+        setCurrentUser(player);
+      }
+    });
+
+    // Listen for trade notifications
+    newSocket.on('trade-notification', (data: {
+      playerName: string;
+      action: 'buy' | 'sell' | 'rights';
+      stockName: string;
+      quantity: number;
+      price: number;
+    }) => {
+      const notif = {
+        id: Date.now().toString(),
+        ...data,
+        timestamp: new Date()
+      };
+      setNotifications(prev => [...prev, notif].slice(-50)); // Keep last 50 notifications
+    });
+
+    // Listen for errors
+    newSocket.on('error', (data: { message: string }) => {
+      setError(data.message);
+      setTimeout(() => setError(''), 5000);
+    });
+
+    // Fetch initial room state
+    fetch(`http://localhost:3000/api/room/${roomCode}`)
+      .then(res => res.json())
+      .then((data: Room) => {
+        setRoom(data);
+        const player = data.players.find(p => p.id === playerId);
+        if (player) {
+          setCurrentUser(player);
+        }
+      })
+      .catch(err => {
+        setError('Failed to load room');
+        console.error(err);
+      });
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [roomCode, navigate]);
+
+  const handleTrade = (playerId: string, stockName: string, action: 'buy' | 'sell' | 'rights', quantity: number) => {
+    if (!socket || !roomCode) return;
+    socket.emit('trade', { roomCode, playerId, stockName, action, quantity });
   };
 
   const handlePriceChange = (stockName: string, change: number) => {
-    setStocks(prevStocks => 
-      prevStocks.map(s => 
-        s.name === stockName 
-          ? { ...s, price: Math.max(1, s.price + change) }
-          : s
-      )
-    );
+    if (!socket || !roomCode) return;
+    socket.emit('price-change', { roomCode, stockName, change });
   };
 
-  if (!currentUser) {
-    return <div>Loading...</div>;
+  const handleShareUrl = () => {
+    const url = `${window.location.origin}/game/${roomCode}`;
+    navigator.clipboard.writeText(url).then(() => {
+      alert('Room URL copied to clipboard!');
+    }).catch(() => {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert('Room URL copied to clipboard!');
+    });
+  };
+
+  if (!currentUser || !room) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div>Loading...</div>
+      </div>
+    );
   }
+
+  const players = room.players;
 
   return (
     <div className={styles.dashboard}>
+      {error && (
+        <div className={styles.errorBanner}>
+          {error}
+        </div>
+      )}
       <header className={styles.header}>
-        <h1>Stock Market Game</h1>
-        <div className={styles.roomInfo}>
-          <span>Room: ABC123</span>
-          <span>Players: {players.length}</span>
-          <span className={styles.userRole}>You: {currentUser.name} ({currentUser.role})</span>
+        <div className={styles.headerLeft}>
+          <h1>Stock Market Game</h1>
+          <div className={styles.netWorthDisplay}>
+            <span className={styles.netWorthLabel}>Your Net Worth:</span>
+            <span className={styles.netWorthValue}>₹{currentUser.netWorth.toLocaleString()}</span>
+          </div>
+        </div>
+        <div className={styles.headerRight}>
+          <div className={styles.roomInfo}>
+            <span>Room: {room.roomCode}</span>
+            <span>Players: {players.length}/6</span>
+            <span className={styles.userRole}>{currentUser.name} ({currentUser.role})</span>
+          </div>
+          <div className={styles.headerActions}>
+            <Notifications notifications={notifications} />
+            <Leaderboard players={players} currentUserId={currentUser.id} />
+            <button onClick={handleShareUrl} className={styles.shareButton}>
+              Share Room
+            </button>
+          </div>
         </div>
       </header>
 
       <div className={styles.mainContent}>
         <div className={styles.leftPanel}>
-          <StockPriceBoard stocks={stocks} />
+          <StockPriceBoard stocks={room.stocks} />
           {currentUser.role === 'banker' && (
-            <BankerPanel onPriceChange={handlePriceChange} stocks={stocks} />
+            <BankerPanel onPriceChange={handlePriceChange} stocks={room.stocks} />
           )}
         </div>
 
         <div className={styles.rightPanel}>
           <div className={styles.playerGrid}>
-            {players.map(player => (
-              <PlayerPanel 
-                key={player.id} 
-                player={player}
-                isCurrentUser={player.id === currentUser.id}
-                onTrade={handleTrade}
-                stocks={stocks}
-              />
-            ))}
+            <PlayerPanel 
+              key={currentUser.id} 
+              player={currentUser}
+              isCurrentUser={true}
+              onTrade={handleTrade}
+              stocks={room.stocks}
+            />
           </div>
         </div>
       </div>
@@ -157,4 +207,4 @@ const GameDashboard: React.FC = () => {
   );
 };
 
-export default GameDashboard; 
+export default GameDashboard;
