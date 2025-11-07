@@ -22,7 +22,7 @@ const LandingPage: React.FC = () => {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:3000/api/room/create', {
+      const response = await fetch('https://stockmarket-backend-1s7o.onrender.com/api/room/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, role })
@@ -64,7 +64,7 @@ const LandingPage: React.FC = () => {
     setError('');
     
     try {
-      const response = await fetch(`http://localhost:3000/api/room/${roomCode}/join`, {
+      const response = await fetch(`https://stockmarket-backend-1s7o.onrender.com/api/room/${roomCode}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })

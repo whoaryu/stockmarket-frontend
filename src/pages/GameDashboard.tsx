@@ -58,7 +58,7 @@ const GameDashboard: React.FC = () => {
     const { playerId } = JSON.parse(userInfo);
     
     // Initialize Socket.io connection
-    const newSocket = io('http://localhost:3000');
+    const newSocket = io('https://stockmarket-backend-1s7o.onrender.com');
     socketRef.current = newSocket;
     setSocket(newSocket);
 
@@ -97,7 +97,7 @@ const GameDashboard: React.FC = () => {
     });
 
     // Fetch initial room state
-    fetch(`http://localhost:3000/api/room/${roomCode}`)
+    fetch(`https://stockmarket-backend-1s7o.onrender.com/api/room/${roomCode}`)
       .then(res => res.json())
       .then((data: Room) => {
         setRoom(data);
